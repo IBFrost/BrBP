@@ -437,6 +437,7 @@
 					</OnClick>
 				</Scripts>
 			</Button>
+			<!-- Masquerade Button (allows the user (if also server) to input reserves as if they were someone else)-->
 			<Button parentKey="Masquerade" inherits="UIMenuButtonStretchTemplate" frameLevel="100" hidden="true">
 				<Size x="100" y="20" />
 				<Anchors>
@@ -506,6 +507,7 @@
 					<OnLeave function="GameTooltip_Hide" />
 				</Scripts>
 			</Button>
+			<!-- Opt-Out Button -->
 			<Button parentKey="OptOut" inherits="UIPanelButtonTemplate" text="Opt Out" frameLevel="100" hidden="true">
 				<Size x="80" y="19" />
 				<Anchors>
@@ -527,6 +529,7 @@
 					<OnLeave function="GameTooltip_Hide" />
 				</Scripts>
 			</Button>
+			<!-- Opt-In Button -->
 			<Button parentKey="OptIn" inherits="UIPanelButtonTemplate" text="Opt In " frameLevel="100" hidden="true">
 				<Size x="80" y="19" />
 				<Anchors>
@@ -545,6 +548,7 @@
 					<OnLeave function="GameTooltip_Hide" />
 				</Scripts>
 			</Button>
+			<!-- Duration bar (shows remaining time in loading bar format) -->
 			<StatusBar parentKey="Duration" inherits="LootReserveDurationStatusBar">
 				<KeyValues>
 					<KeyValue key="server" value="false" type="boolean" />
@@ -555,6 +559,7 @@
 					<Anchor point="TOPRIGHT" x="-19" y="-63" />
 				</Anchors>
 			</StatusBar>
+			<!-- Search Bar -->
 			<EditBox parentKey="Searchbar" inherits="SearchBoxTemplate">
 				<Size x="193" y="20" />
 				<Anchors>
@@ -574,6 +579,7 @@
 					</OnTextChanged>
 				</Scripts>
 			</EditBox>
+			<!-- Categories of loot (such as selecting a BOSS or TIER TOKEN group) -->
 			<Frame parentKey="Categories" inherits="LootReserveBackdropTemplate">
 				<KeyValues>
 					<KeyValue key="backdropInfo" value="LOOTRESERVE_BACKDROP_BLACK_4" type="global" />
@@ -595,6 +601,7 @@
 					</ScrollFrame>
 				</Frames>
 			</Frame>
+			<!-- Displays the actual loot to reserve -->
 			<Frame parentKey="Loot" inherits="LootReserveBackdropTemplate">
 				<KeyValues>
 					<KeyValue key="backdropInfo" value="LOOTRESERVE_BACKDROP_BLACK_4" type="global" />
@@ -617,11 +624,12 @@
 				</Frames>
 			</Frame>
 		</Frames>
+		<!-- Parent Window Scripts-->
 		<Scripts>
 			<OnLoad>
 				LootReserve.Client:OnWindowLoad(self);
 				table.insert(UISpecialFrames, self:GetName());
-				
+				<!-- Queues up opening the window for after combat -->
 				function self:PendOpen()
 					if LootReserve.Client.SessionServer and LootReserve.Client.AcceptingReserves and not LootReserve.Client.Locked and LootReserve.Client.RemainingReserves > 0 and not LootReserve.Client.OptedOut then
 						if UnitAffectingCombat("player") then

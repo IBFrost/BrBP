@@ -13445,7 +13445,7 @@ do
     end
 end
 
-
+--- Returns a boolean that queries if a given item is in the master categories list.
 function LootReserve.Data:IsItemInCategories(itemID, categories)
     if itemID == 0 then return false; end
     for _, category in ipairs(categories) do
@@ -13468,6 +13468,7 @@ function LootReserve.Data:IsItemInCategories(itemID, categories)
     return false;
 end
 
+--- Gets the categories an item is in by item ID.
 function LootReserve.Data:GetItemCategories(itemID)
     local categories = { };
     for category in pairs(self.Categories) do
@@ -13478,10 +13479,13 @@ function LootReserve.Data:GetItemCategories(itemID)
     return categories;
 end
 
+--- Checks if a category is visible on the local client.
 function LootReserve.Data:IsCategoryVisible(category)
     return not category.Expansion or category.Expansion <= LootReserve:GetCurrentExpansion();
 end
 
+--- Sorts the categories.
+--- Boy do I not love nondescript variable names :(
 function LootReserve.Data.CategorySorter(a, b, aID, bID)
     if a.Sort then aID = a.Sort end
     if b.Sort then bID = b.Sort end
@@ -13491,32 +13495,51 @@ function LootReserve.Data.CategorySorter(a, b, aID, bID)
     return aID < bID;
 end
 
+--- Checks if an item is one that begins a quest.
 function LootReserve.Data:GetQuestStarted(itemID)
     return self.QuestStarters[itemID];
 end
+
+--- Checks the requirements for a drop to be looted by a given player.
 function LootReserve.Data:GetQuestDropRequirement(itemID)
     return self.QuestDrops[itemID];
 end
 
+--- Gets the token id for an item, such as "Scorched Core Chest" for "Cenarion Armor" 
 function LootReserve.Data:GetToken(itemID)
     return self.TokenMap.Tokens[itemID];
 end
+
+--- Gets the available items for a given token itemID.
+--- Basically the opposite of the above function.
 function LootReserve.Data:GetTokenRewards(itemID)
     return self.TokenMap.Rewards[itemID];
 end
+
+--- Checks if an item ID is a token.
 function LootReserve.Data:IsToken(itemID)
     return self:GetTokenRewards(itemID) ~= nil;
 end
+
+--- Checks if the item ID is a reward from a token.
 function LootReserve.Data:IsTokenReward(itemID)
     return self:GetToken(itemID) ~= nil;
 end
+
+--- Checks if a token is a "heroic" version (?)
+--- Shouldn't need a bunch of fussing with for BrB's specific purposes.
 function LootReserve.Data:IsHeroicMirror(itemID)
     return self.TokenMap.HeroicMirrors[itemID] or false;
 end
+
+--- Checks if an item has an override that modifies the item level.
+--- Not sure what this would be for, but once again shouldn't be an issue I need to worry about.
 function LootReserve.Data:GetItemLevelOverride(itemID)
     return self.ItemLevelOverrides[itemID];
 end
 
+--- Gets the actual item ID the player wants.
+--- eg. if a player reserves "Cenarion Armor" (SoD T1 Druid Tank Chest) it will return the ID of "Scorched Core Chest"
 function LootReserve.Data:GetIntendedItem(itemID)
     local intendedItem = self.OtherFactionItems[itemID] or self.IntendedItems[itemID];
     if intendedItem then

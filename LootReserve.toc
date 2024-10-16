@@ -7,15 +7,15 @@
 ## X-Min-Allowed-Version-Era: 2024-10-03
 ## X-Min-Allowed-Version-SoD: 2024-10-03
 
-## X-Curse-Project-ID: 390790
-## X-Wago-ID: WL6JpyGv
+## X-Curse-Project-ID: none
+## X-Wago-ID: none
 
-## Title: LootReserve
-## Notes: Soft reserves management addon
-## Author: Anonomit (Damagus-Benediction, Damage-CrusaderStrikeUS)|nOriginal addon by Tagar-NethergardeKeep
+## Title: BrBLoot
+## Notes: Loot management addon adapted for the Blackrock Bruisers Point (BrBP) system
+## Author: IBFrost (Stambp-CrusaderStrikeUS)|nBuilt from Edit by Anonomit (Damagus-Benediction, Damage-CrusaderStrikeUS)|nOriginal addon by Tagar-NethergardeKeep
 
-## SavedVariables: LootReserveGlobalSave
-## SavedVariablesPerCharacter: LootReserveCharacterSave
+## SavedVariables: BrBPGlobalSave
+## SavedVariablesPerCharacter: BrBPCharacterSave
 
 ## OptionalDeps: Ace3, ItemCache
 ## X-Embeds: Ace3, ItemCache

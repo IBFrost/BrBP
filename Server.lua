@@ -393,10 +393,12 @@ local function stringStartsWith(str, start)
     return str:sub(1, #start) == start;
 end
 
+--- Checks if the client is able to act as a server.
 function LootReserve.Server:CanBeServer()
     return not IsInGroup() or UnitIsGroupLeader("player") or IsMasterLooter();
 end
 
+--- Self-assigns if what chat channel to put announcements into.
 function LootReserve.Server:GetChatChannel(announcement)
     if IsInRaid() then
         return announcement and self.Settings.ChatAsRaidWarning[announcement] and (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) and "RAID_WARNING" or "RAID";
@@ -407,6 +409,8 @@ function LootReserve.Server:GetChatChannel(announcement)
     end
 end
 
+--- Checks if a recent chat is if import to the server, such as manual rolls made by clients
+--- Also ensures that the rolls are in-range and not modified (such as `/roll 100 100`) to force a 100 result.
 function LootReserve.Server:HasRelevantRecentChat(roll, player)
     local chat    = roll.Chat;
     local players = roll.Players;
@@ -437,10 +441,12 @@ function LootReserve.Server:HasRelevantRecentChat(roll, player)
     return #players[player] < chatRollCount;
 end
 
+--- Checks if a given player is using the addon.
 function LootReserve.Server:IsAddonUser(player)
     return LootReserve:IsMe(player) or self.AddonUsers[player] and true or false;
 end
 
+--- Sets if a player is using the addon according to the local "server" environment.
 function LootReserve.Server:SetAddonUser(player, version)
     if not self.AddonUsers[player] or self.AddonUsers[player] ~= version and version ~= "" then
         self.AddonUsers[player] = version;
@@ -500,6 +506,7 @@ local function GetSavedItemConditions(categories)
     return container;
 end
 
+--- Gets the conditions of items available in the session from clients.
 function LootReserve.Server:GetNewSessionItemConditions()
     if #self.NewSessionSettings.LootCategories == 1 then
         return GetSavedItemConditionsSingle(self.NewSessionSettings.LootCategories[1]);
@@ -508,6 +515,7 @@ function LootReserve.Server:GetNewSessionItemConditions()
     end
 end
 
+--- Gets the conditions of all saved items at once.
 function LootReserve.Server:GetAllItemConditions()
     local categories = { };
     for category in pairs(LootReserve.Data.Categories) do
@@ -518,6 +526,7 @@ function LootReserve.Server:GetAllItemConditions()
     return GetSavedItemConditions(categories);
 end
 
+--- Attempts to load reserve info, warning the player if they are relogging.
 function LootReserve.Server:Load()
     LootReserveCharacterSave.Server = LootReserveCharacterSave.Server or { };
     LootReserveGlobalSave.Server = LootReserveGlobalSave.Server or { };
@@ -831,6 +840,7 @@ function LootReserve.Server:Load()
     self.LootEdit:UpdateCategories();
 end
 
+--- Attempts to start a new loot session.
 function LootReserve.Server:Startup()
     -- Hook roll handlers if needed
     if self.RequestedRoll then
@@ -913,6 +923,7 @@ function LootReserve.Server:Startup()
     self:PrepareGuildTracking();
 end
 
+--- Check if a player has already won an item.
 function LootReserve.Server:HasAlreadyWon(player, item)
     local won = self.CurrentSession and self.CurrentSession.Members[player] and self.CurrentSession.Members[player].WonRolls;
     if won then
@@ -926,6 +937,8 @@ function LootReserve.Server:HasAlreadyWon(player, item)
     return false;
 end
 
+--- Handles automatic accepting of trades by the server player
+--- Speeds up distributing items by the loot master.
 function LootReserve.Server:UpdateTradeFrameAutoButton(accepting)
     if not TradeFrame:IsShown() then
         return;
@@ -993,6 +1006,7 @@ function LootReserve.Server:UpdateTradeFrameAutoButton(accepting)
     end
 end
 
+--- Adds an item to the recent loot blacklist.
 function LootReserve.Server:AddRecentLoot(item, skipChecks)
     if self.Settings.RecentLootBlacklist[item:GetID()] or LootReserve.Data.RecentLootBlacklist[item:GetID()] then return; end
     if not item:IsCached() then
@@ -1041,6 +1055,7 @@ function LootReserve.Server:AddRecentLoot(item, skipChecks)
     LootReserve.TooltipScanner:Hide();
 end
 
+--- Tracks looted items and outcomes 
 function LootReserve.Server:PrepareLootTracking()
     if self.LootTrackingRegistered then return; end
     self.LootTrackingRegistered = true;
@@ -1232,6 +1247,7 @@ function LootReserve.Server:PrepareLootTracking()
     end);
 end
 
+--- Tracks the guild roster.
 function LootReserve.Server:PrepareGuildTracking()
     if self.GuildMemberTrackingRegistered then return; end
     self.GuildMemberTrackingRegistered = true;
@@ -1250,6 +1266,7 @@ function LootReserve.Server:PrepareGuildTracking()
     GuildRoster();
 end
 
+--- Updates the reserve list to match 
 function LootReserve.Server:UpdateGroupMembers()
     local changed = false;
     
@@ -1305,6 +1322,7 @@ function LootReserve.Server:UpdateGroupMembers()
     self:UpdateAddonUsers();
 end
 
+--- Sets up the listeners and facilitates client handling.
 function LootReserve.Server:PrepareSession()
     if self.CurrentSession.Settings.Duration ~= 0 and not self.DurationUpdateRegistered then
         self.DurationUpdateRegistered = true;
@@ -1845,6 +1863,7 @@ function LootReserve.Server:PrepareSession()
     self:UpdateGroupMembers();
 end
 
+--- Begins a session if the client is able to be a server.
 function LootReserve.Server:StartSession()
     if not self:CanBeServer() then
         LootReserve:ShowError("You must be the raid leader or the master looter to start loot reserves");
@@ -1984,6 +2003,7 @@ function LootReserve.Server:StartSession()
     return true;
 end
 
+--- Resumes a reserving session, preserving existing reserves.
 function LootReserve.Server:ResumeSession()
     if not self.CurrentSession then
         LootReserve:ShowError("Loot reserves haven't been started");
@@ -2049,6 +2069,7 @@ function LootReserve.Server:ResumeSession()
     return true;
 end
 
+--- Stops accepting changes to reserves.
 function LootReserve.Server:StopSession()
     if not self.CurrentSession then
         LootReserve:ShowError("Loot reserves haven't been started");
@@ -2079,6 +2100,7 @@ function LootReserve.Server:StopSession()
     return true;
 end
 
+--- Resets the session. 
 function LootReserve.Server:ResetSession()
     if not self.CurrentSession then
         return true;
@@ -2106,6 +2128,7 @@ function LootReserve.Server:ResetSession()
     return true;
 end
 
+--- Changes the number of reserves a given player has
 function LootReserve.Server:IncrementReservesDelta(player, amount, automatic, winner)
     local function Failure(result, ...)
         LootReserve:ShowError(LootReserve.Constants.ReserveDeltaResultText[result]);
@@ -2168,6 +2191,7 @@ function LootReserve.Server:IncrementReservesDelta(player, amount, automatic, wi
     return true;
 end
 
+--- Server-side handling of opting out.
 function LootReserve.Server:Opt(player, out, chat)
     local masquerade;
     if LootReserve:IsMe(player) and LootReserve.Client.Masquerade then
@@ -2237,6 +2261,7 @@ function LootReserve.Server:Opt(player, out, chat)
     return true;
 end
 
+--- Server-side handling of reserves
 function LootReserve.Server:Reserve(player, itemID, count, chat, skipChecks)
     count = math.max(1, count or 1);
     
@@ -2414,6 +2439,7 @@ function LootReserve.Server:Reserve(player, itemID, count, chat, skipChecks)
     return true;
 end
 
+--- Server-side handling of cancelling a reserve
 function LootReserve.Server:CancelReserve(player, itemID, count, chat, forced, winner, noRefund)
     count = math.max(1, count or 1);
     
@@ -2585,6 +2611,7 @@ function LootReserve.Server:CancelReserve(player, itemID, count, chat, forced, w
     return true;
 end
 
+--- Handles chat requests for a list of reserves.
 function LootReserve.Server:SendReservesList(player, onlyRelevant, force, itemList)
     if player then
         if not LootReserve:IsPlayerOnline(player) then
@@ -2683,10 +2710,12 @@ function LootReserve.Server:SendReservesList(player, onlyRelevant, force, itemLi
     end
 end
 
+--- Returns a boolean of if a roll is currently occurring for an item by ID.
 function LootReserve.Server:IsRolling(item)
     return self.RequestedRoll and self.RequestedRoll.Item == LootReserve.ItemCache:Item(item) or false;
 end
 
+--- Dictates behavior to occur when a roll request finishes its dictated time frame.
 function LootReserve.Server:ExpireRollRequest()
     if self.RequestedRoll then
         local item = self.RequestedRoll.Item;
@@ -2724,6 +2753,7 @@ function LootReserve.Server:ExpireRollRequest()
     end
 end
 
+--- Rolls out the loot according to rollers.
 function LootReserve.Server:TryFinishRoll()
     if self.RequestedRoll then
         -- Check if only one player exists in the roll request
@@ -2771,6 +2801,7 @@ function LootReserve.Server:TryFinishRoll()
     end
 end
 
+--- Determines the highest roll and the highest player, as well as any losers.
 function LootReserve.Server:GetWinningRollAndPlayers(Roll)
     if Roll then
         local highestRoll = LootReserve.Constants.RollType.NotRolled;
@@ -2801,6 +2832,7 @@ function LootReserve.Server:GetWinningRollAndPlayers(Roll)
     end
 end
 
+--- In the case of a roll tie, resolves it with another roll.
 function LootReserve.Server:ResolveRollTie(item)
     if self:IsRolling(item) then
         local roll, winners, losers = self:GetWinningRollAndPlayers(self.RequestedRoll);
@@ -2837,6 +2869,7 @@ function LootReserve.Server:ResolveRollTie(item)
     end
 end
 
+--- Finishes up the rolling process, reports the result, then records the result 
 function LootReserve.Server:FinishRollRequest(item, soleReserver, silent, noLosers)
     local function RecordRollWinner(player, item, phase)
         if self.CurrentSession then
@@ -2948,6 +2981,7 @@ function LootReserve.Server:FinishRollRequest(item, soleReserver, silent, noLose
     self.MembersEdit:UpdateMembersList();
 end
 
+--- Forces advancement of the roll phase.
 function LootReserve.Server:AdvanceRollPhase(item)
     if self:IsRolling(item) then
         if self:GetWinningRollAndPlayers(self.RequestedRoll) then return; end
@@ -2963,6 +2997,7 @@ function LootReserve.Server:AdvanceRollPhase(item)
     end
 end
 
+--- Stops the loot from rolling out.
 function LootReserve.Server:CancelRollRequest(item, winners, noHistory, advancing)
     self.NextRollCountdown = nil;
     if self:IsRolling(item) then
@@ -3081,6 +3116,7 @@ function LootReserve.Server:CancelRollRequest(item, winners, noHistory, advancin
     end
 end
 
+--- Saves the roll history to memory.
 function LootReserve.Server:RecordRollHistory(roll, winner)
     if winner then
         roll.Winners = { winner };
@@ -3109,6 +3145,7 @@ function LootReserve.Server:RecordRollHistory(roll, winner)
     end
 end
 
+--- Records that an item was won using /roll 98 aka Disenchant
 function LootReserve.Server:RecordDisenchant(item, disenchanter, handleRecentLootRemoval)
     LootReserve.Server:RecordRollHistory(
     {
@@ -3126,6 +3163,7 @@ function LootReserve.Server:RecordDisenchant(item, disenchanter, handleRecentLoo
     self:UpdateRollList();
 end
 
+--- Gets if there is a disenchanter in the raid.
 function LootReserve.Server:GetDisenchanter()
     local names = { };
     LootReserve:ForEachRaider(function(name) names[name] = true end);
@@ -3139,6 +3177,7 @@ function LootReserve.Server:GetDisenchanter()
     return nil;
 end
 
+--- Retrieves data for resuming a roll in the case of a reload.
 function LootReserve.Server:GetContinueRollData(oldRoll)
     -- Copy historical roll into RequestedRoll
     local Roll = LootReserve:Deepcopy(oldRoll);
@@ -3211,6 +3250,7 @@ function LootReserve.Server:GetContinueRollData(oldRoll)
     return Roll, doRequestRoll;
 end
 
+--- Resumes a stopped roll
 function LootReserve.Server:ContinueRoll(oldRoll, noFill)
     if self.RequestedRoll then
         LootReserve:ShowError("There's a roll in progress");
@@ -3241,6 +3281,7 @@ function LootReserve.Server:ContinueRoll(oldRoll, noFill)
     self:UpdateRollList();
 end
 
+--- Checks if the unit can roll on the item that is presently rolling out.
 function LootReserve.Server:CanRoll(player, rollTier)
     -- Roll must exist
     if not self.RequestedRoll then return false; end
@@ -3282,6 +3323,7 @@ function LootReserve.Server:CanRoll(player, rollTier)
     return true;
 end
 
+--- Spools up a roll request.
 function LootReserve.Server:PrepareRequestRoll()
     if self.RequestedRoll and self.RequestedRoll.Duration and not self.RollDurationUpdateRegistered then
         self.RollDurationUpdateRegistered = true;
@@ -3530,6 +3572,7 @@ function LootReserve.Server:PrepareRequestRoll()
     end
 end
 
+--- Attempts to request a roll for a given item with default settings.
 function LootReserve.Server:RequestRoll(item, allowedPlayers)
     if not self.CurrentSession then
         LootReserve:ShowError("Loot reserves haven't been started");
@@ -3666,6 +3709,7 @@ function LootReserve.Server:RequestRoll(item, allowedPlayers)
     self:UpdateRollList();
 end
 
+--- Attempts to request a roll for a given item with custom settings
 function LootReserve.Server:RequestCustomRoll(item, duration, phases, tiered, allowedPlayers)
     self.RequestedRoll =
     {
@@ -3766,6 +3810,7 @@ function LootReserve.Server:RequestCustomRoll(item, duration, phases, tiered, al
     self:UpdateRollList();
 end
 
+--- Rolls randomly in a range of 1 to the raid size to simply randomly assign loot, such as greens.
 function LootReserve.Server:RaidRoll(item)
     self.RequestedRoll =
     {
@@ -3783,6 +3828,7 @@ function LootReserve.Server:RaidRoll(item)
     self:UpdateRollList();
 end
 
+--- Handles a request by a player to "pass" on rolling for an item.
 function LootReserve.Server:PassRoll(player, item, chat, isPrivateChannel)
     if not self:IsRolling(item) or not self.RequestedRoll.Players[player] then
         return;
@@ -3847,6 +3893,8 @@ function LootReserve.Server:PassRoll(player, item, chat, isPrivateChannel)
     self:TryFinishRoll();
 end
 
+--- Deletes a roll from the list
+--- Likely used when a user changes their intended roll before the item rolls out.
 function LootReserve.Server:DeleteRoll(player, rollNumber, item)
     if not self:IsRolling(item) or not self.RequestedRoll.Players[player] or not self.RequestedRoll.Players[player][rollNumber] or self.RequestedRoll.Players[player][rollNumber] < 0 then
         return;
@@ -3882,6 +3930,7 @@ function LootReserve.Server:DeleteRoll(player, rollNumber, item)
     self:TryFinishRoll();
 end
 
+--- Bubble sorts the rolls made to determine winners and losers.
 function LootReserve.Server:GetOrderedPlayerRolls(roll)
     local playerRolls = { };
     for player, rolls in pairs(roll) do
@@ -3910,6 +3959,7 @@ function LootReserve.Server:GetOrderedPlayerRolls(roll)
     end
 end
 
+--- Attempts to master loot an item to the winner of the roll.
 function LootReserve.Server:MasterLootItem(item, player, multipleWinners)
     if not item or not player then return; end
 
@@ -4016,6 +4066,7 @@ function LootReserve.Server:MasterLootItem(item, player, multipleWinners)
     LootButton_OnClick(fake, "LeftButton"); -- Now wait for OPEN_MASTER_LOOT_LIST/UPDATE_MASTER_LOOT_LIST
 end
 
+--- Whispers to remind a player who has not exhausted their reserves.
 function LootReserve.Server:WhisperPlayerWithoutReserves(player)
     if not self.CurrentSession then return; end
     if not self.CurrentSession.AcceptingReserves then return; end
@@ -4048,6 +4099,7 @@ function LootReserve.Server:WhisperPlayerWithoutReserves(player)
     end
 end
 
+--- Iterates through all players who have not used all reserves and whispers a reminder to them.
 function LootReserve.Server:WhisperAllWithoutReserves()
     if not self.CurrentSession then return; end
     if not self.CurrentSession.AcceptingReserves then return; end
@@ -4061,6 +4113,7 @@ function LootReserve.Server:WhisperAllWithoutReserves()
     end
 end
 
+--- Returns the string that applies to the target player to encourage them to install the the addon or current version.
 function LootReserve.Server:GetSupportString(player, prefix, force)
     local addonUser = self:IsAddonUser(player);
     if addonUser and not force then
@@ -4070,6 +4123,7 @@ function LootReserve.Server:GetSupportString(player, prefix, force)
     end
 end
 
+--- Sends a target player the result of the above function.
 function LootReserve.Server:SendSupportString(player, force)
     local supportString = self:GetSupportString(player, nil, force);
     if supportString ~= "" then
@@ -4077,6 +4131,7 @@ function LootReserve.Server:SendSupportString(player, force)
     end
 end
 
+--- Sends current instructions to all clients in the current session.
 function LootReserve.Server:BroadcastInstructions()
     if not self.CurrentSession then return; end
     if not self.CurrentSession.AcceptingReserves then return; end

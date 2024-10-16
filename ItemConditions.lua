@@ -20,6 +20,8 @@ function LootReserve.ItemConditions:Get(itemID, server)
     end
 end
 
+--- Applies the item "conditions" such as faction or class limitations.
+--- "Smart" in the sense that it doesn't allow editing on the client-side. 
 function LootReserve.ItemConditions:Make(itemID, server)
     if server and LootReserve.Server.CurrentSession then
         LootReserve:ShowError("Cannot edit loot during an active session");
@@ -41,6 +43,7 @@ function LootReserve.ItemConditions:Make(itemID, server)
     end
 end
 
+--- Saves item "conditions" to the server. 
 function LootReserve.ItemConditions:Save(itemID, server)
     if server and LootReserve.Server.CurrentSession then
         LootReserve:ShowError("Cannot edit loot during an active session");
@@ -99,6 +102,7 @@ function LootReserve.ItemConditions:Save(itemID, server)
     end
 end
 
+--- Deletes the conditions of an item from the table.
 function LootReserve.ItemConditions:Delete(itemID, server)
     if server and LootReserve.Server.CurrentSession then
         LootReserve:ShowError("Cannot edit loot during an active session");
@@ -112,6 +116,7 @@ function LootReserve.ItemConditions:Delete(itemID, server)
     end
 end
 
+--- Deletes all item conditions from the session.
 function LootReserve.ItemConditions:Clear(server)
     if server and LootReserve.Server.CurrentSession then
         LootReserve:ShowError("Cannot edit loot during an active session");
@@ -126,6 +131,7 @@ function LootReserve.ItemConditions:Clear(server)
     end
 end
 
+--- Returns a boolean, true if there are custom item "conditions" and false if not.
 function LootReserve.ItemConditions:HasCustom(server)
     local container;
     if server and LootReserve.Server.CurrentSession then
@@ -147,7 +153,7 @@ function LootReserve.ItemConditions:HasCustom(server)
 end
 
 
-
+--- Checks if an item is usable by a given class, excpluding any versions of the item already owned by the player.
 local function IsItemUsable(itemID, playerClass, isMe)
     local numOwned;
     if isMe then
@@ -289,9 +295,12 @@ local function IsItemUsableByMe(itemID)
 end
 
 
+--- Checks if an item id is usable by a given class.
 function LootReserve.ItemConditions:IsItemUsable(itemID, playerClass)
     return IsItemUsable(itemID, playerClass, false);
 end
+
+--- Checks if an item id is usable by the local player.
 function LootReserve.ItemConditions:IsItemUsableByMe(itemID)
     return IsItemUsableByMe(itemID);
 end
@@ -379,6 +388,7 @@ function LootReserve.ItemConditions:TestServer(itemID)
     return true;
 end
 
+--- Checks if an item should be visible on the local client.
 function LootReserve.ItemConditions:IsItemVisibleOnClient(itemID)
     local tokenID = LootReserve.Data:GetToken(itemID);
     if tokenID and not self:IsItemVisibleOnClient(tokenID) then
@@ -389,11 +399,13 @@ function LootReserve.ItemConditions:IsItemVisibleOnClient(itemID)
            or ((conditionResult == LootReserve.Constants.ReserveResult.FailedClass or conditionResult == LootReserve.Constants.ReserveResult.FailedUsable) and (LootReserve.Client.Locked or not LootReserve.Client.AcceptingReserves));
 end
 
+--- Checks if an item can be reserved by the local client.
 function LootReserve.ItemConditions:IsItemReservableOnClient(itemID)
     local canReserve, conditionResult = self:TestPlayer(LootReserve.Client.Masquerade or LootReserve:Me(), itemID, false);
     return canReserve;
 end
 
+--- Compresses item conditions into a short-ish string that can be easily passed around.
 function LootReserve.ItemConditions:Pack(conditions)
     local text = "";
     if conditions.Hidden or conditions.BossHidden then
@@ -415,6 +427,7 @@ function LootReserve.ItemConditions:Pack(conditions)
     return text;
 end
 
+--- Extracts item conditions from a packed string.
 function LootReserve.ItemConditions:Unpack(text)
     local conditions = LootReserve:Deepcopy(DefaultConditions);
 

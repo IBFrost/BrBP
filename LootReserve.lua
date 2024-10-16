@@ -12,7 +12,7 @@ LootReserve.LibRangeCheck = LibStub("LibRangeCheck-3.0");
 LootReserve.ItemCache     = LibStub("ItemCache");
 LootReserve.LibDD         = LibStub("LibUIDropDownMenu-4.0");
 
-LootReserveCharacterSave =
+BrBPCharacterSave =
 {
     Client =
     {
@@ -26,7 +26,7 @@ LootReserveCharacterSave =
         RecentLoot     = nil,
     },
 };
-LootReserveGlobalSave =
+BrBPGlobalSave =
 {
     Client =
     {
@@ -278,6 +278,7 @@ function LootReserve:RegisterEvent(...)
     end
 end
 
+--- Defines the bounds of window resizing.
 function LootReserve:SetResizeBounds(frame, minWidth, minHeight, maxWidth, maxHeight)
     if frame.SetResizeBounds then
         frame:SetResizeBounds(minWidth, minHeight, maxWidth, maxHeight);
@@ -291,6 +292,7 @@ function LootReserve:SetResizeBounds(frame, minWidth, minHeight, maxWidth, maxHe
     end
 end
 
+--- Gets the into for an item in the way the addon handles item info.
 function LootReserve:GetContainerItemInfo(bag, slot)
     local containerInfo;
     if C_Container then
@@ -316,6 +318,7 @@ function LootReserve:GetContainerItemInfo(bag, slot)
     return containerInfo;
 end
 
+--- LootReserve's mirror of C_Container.GetContainerNumSlots that handles different versions.
 function LootReserve:GetContainerNumSlots(bag)
     if C_Container and C_Container.GetContainerNumSlots then
         return C_Container.GetContainerNumSlots(bag);
@@ -324,6 +327,7 @@ function LootReserve:GetContainerNumSlots(bag)
     end
 end
 
+--- LootReserve's mirror of C_Container.PickupContainerItem that handles different versions.
 function LootReserve:PickupContainerItem(bag, slot)
     if C_Container and C_Container.PickupContainerItem then
         return C_Container.PickupContainerItem(bag, slot);
@@ -332,6 +336,7 @@ function LootReserve:PickupContainerItem(bag, slot)
     end
 end
 
+--- 
 function LootReserve:OpenMenu(menu, menuContainer, anchor)
     if L_UIDROPDOWNMENU_OPEN_MENU == menuContainer then
         CloseMenus();
@@ -367,6 +372,7 @@ function LootReserve:OpenMenu(menu, menuContainer, anchor)
     LootReserve.LibDD:EasyMenu(menu, menuContainer, anchor, 0, 0, "MENU");
 end
 
+--- UNSURE / UNDEFINED
 function LootReserve:OpenSubMenu(...)
     for submenu = 1, select("#", ...) do
         local arg1 = select(submenu, ...);
@@ -392,12 +398,14 @@ function LootReserve:OpenSubMenu(...)
     return true;
 end
 
+--- Presumably a helper function to self-manage the pop-up feature
 function LootReserve:ReopenMenu(button, ...)
     CloseMenus();
     button:Click();
     self:OpenSubMenu(...);
 end
 
+--- Provides consistent rounding behavior
 function LootReserve:Round(num, nearest)
     nearest = nearest or 1;
     local lower = math.floor(num / nearest) * nearest;
@@ -416,6 +424,8 @@ function LootReserve:FixText(text)
     return text:gsub("\1", " ");
 end
 
+--- Mirror for the SendChatMessage function. 
+--- Self-manages sending behavior for all messages. Reduces verbosity and breaks "too long" messages up.
 function LootReserve:SendChatMessage(text, channel, target)
     if channel == "RAID_WARNING" and not (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) then
         channel = "RAID";
@@ -458,6 +468,7 @@ function LootReserve:SendChatMessage(text, channel, target)
     end
 end
 
+--- Shouldn't matter for intended use case.
 function LootReserve:IsCrossRealm()
     return self:GetCurrentExpansion() == 0 and LootReserve:GetCurrentSeason() == 0;
     -- This doesn't really work, because even in non-connected realms UnitFullName ends up returning your realm name,
@@ -473,10 +484,12 @@ function LootReserve:IsCrossRealm()
     ]]
 end
 
+--- A function that could have been an enum I'm pretty sure.
 function LootReserve:GetNumClasses()
     return 11;
 end
 
+--- Gets the class indicated from a classID.
 function LootReserve:GetClassInfo(classID)
     local info = C_CreatureInfo.GetClassInfo(classID);
     if info then
@@ -484,6 +497,8 @@ function LootReserve:GetClassInfo(classID)
     end
 end
 
+--- Determines player name and separates it from the realm name. 
+--- Helpful for cross-realm activities and any other goofiness I suppose.
 function LootReserve:Player(player)
     if not self:IsCrossRealm() then
         return Ambiguate(player, "short");
@@ -507,18 +522,22 @@ function LootReserve:Player(player)
     return name .. "-" .. realm;
 end
 
+--- Gets the player info for the current client.
 function LootReserve:Me()
     return self:Player(UnitNameUnmodified("player"));
 end
 
+--- Checks if a player is the same as the current client.
 function LootReserve:IsMe(player)
     return self:IsSamePlayer(player, self:Me());
 end
 
+--- Checks if a player is the same as another
 function LootReserve:IsSamePlayer(a, b)
     return self:Player(a) == self:Player(b);
 end
 
+--- Determines if a given player is online.
 function LootReserve:IsPlayerOnline(player)
     return self:ForEachRaider(function(name, _, _, _, _, _, _, online)
         if self:IsSamePlayer(name, player) then
@@ -527,6 +546,8 @@ function LootReserve:IsPlayerOnline(player)
     end);
 end
 
+--- Checks if a given player name is in the raid group
+--- Presumably for pruning, mostly.
 local function LootReserve_UnitInRaid(player)
     if not LootReserve:IsCrossRealm() then
         return UnitInRaid(player);
@@ -539,6 +560,8 @@ local function LootReserve_UnitInRaid(player)
     end);
 end
 
+--- Checks if a given player name is in the current player's group.
+--- Likely when the system is in use outside a raid environment.
 local function LootReserve_UnitInParty(player)
     if not LootReserve:IsCrossRealm() then
         return UnitInParty(player);
@@ -551,6 +574,8 @@ local function LootReserve_UnitInParty(player)
     end);
 end
 
+--- Checks if the unit is present in the group (any size)
+--- Uses the above couple functions. THIS should be used instead of the above.
 function LootReserve:UnitInGroup(player)
     if not self:IsCrossRealm() then
         if IsInRaid() then
@@ -569,6 +594,7 @@ function LootReserve:UnitInGroup(player)
     end);
 end
 
+--- Determines the class of a given player
 function LootReserve:UnitClass(player)
     if not self:IsCrossRealm() then
         local className, classFilename, classId = UnitClass(player);
@@ -589,6 +615,8 @@ function LootReserve:UnitClass(player)
     end);
 end
 
+--- Determines the race of a player.
+--- I guess this could be for race-locked items? Does this happen often???
 function LootReserve:UnitRace(player)
     if not self:IsCrossRealm() then
         return UnitRace(player);
@@ -604,6 +632,8 @@ function LootReserve:UnitRace(player)
     end);
 end
 
+--- Determines if the given player is a furry.
+--- Absolutely no clue why this is needed, but I dig it.
 function LootReserve:UnitIsGilneanForm(player)
     if select(3, self:UnitRace(player)) == self.Constants.Races.Worgen then
         self.PlayerModel = self.PlayerModel or CreateFrame("PlayerModel");
@@ -616,6 +646,8 @@ function LootReserve:UnitIsGilneanForm(player)
     return false;
 end
 
+--- Gets the character body type of a given player.
+--- Should honestly `return false` since this *is* WoW players we are talking about.
 function LootReserve:UnitSex(player)
     if not self:IsCrossRealm() then
         return UnitSex(player);
@@ -631,6 +663,47 @@ function LootReserve:UnitSex(player)
     end);
 end
 
+--- Gets the unitID of a player by name (Raid only).
+local function GetRaidUnitID(player)
+    for i = 1, MAX_RAID_MEMBERS do
+        local unit = UnitNameUnmodified("raid" .. i);
+        if unit and LootReserve:IsSamePlayer(LootReserve:Player(unit), player) then
+            return "raid" .. i;
+        end
+    end
+
+    if LootReserve:IsMe(player) then
+        return "player";
+    end
+end
+
+--- Gets the unitID of a player by name (Party only).
+local function GetPartyUnitID(player)
+    for i = 1, MAX_PARTY_MEMBERS do
+        local unit = UnitNameUnmodified("party" .. i);
+        if unit and LootReserve:IsSamePlayer(LootReserve:Player(unit), player) then
+            return "party" .. i;
+        end
+    end
+
+    if LootReserve:IsMe(player) then
+        return "player";
+    end
+end
+
+--- Gets the unitID of a player by name.
+--- To be used instead of the above two functions. IG that's clear though since those are local, but w/e
+function LootReserve:GetGroupUnitID(player)
+    if IsInRaid() then
+        return GetRaidUnitID(player);
+    elseif IsInGroup() then
+        return GetPartyUnitID(player);
+    elseif self:IsMe(player) then
+        return "player"
+    end
+end
+
+--- Gets the class color of a player in roder to properly indicate class.
 local function GetPlayerClassColor(player, dim, class)
     local className, classFilename, classId = LootReserve:UnitClass(player);
     if class then
@@ -650,48 +723,14 @@ local function GetPlayerClassColor(player, dim, class)
     return dim and "FF404040" or "FF808080";
 end
 
-local function GetRaidUnitID(player)
-    for i = 1, MAX_RAID_MEMBERS do
-        local unit = UnitNameUnmodified("raid" .. i);
-        if unit and LootReserve:IsSamePlayer(LootReserve:Player(unit), player) then
-            return "raid" .. i;
-        end
-    end
-
-    if LootReserve:IsMe(player) then
-        return "player";
-    end
-end
-
-local function GetPartyUnitID(player)
-    for i = 1, MAX_PARTY_MEMBERS do
-        local unit = UnitNameUnmodified("party" .. i);
-        if unit and LootReserve:IsSamePlayer(LootReserve:Player(unit), player) then
-            return "party" .. i;
-        end
-    end
-
-    if LootReserve:IsMe(player) then
-        return "player";
-    end
-end
-
-function LootReserve:GetGroupUnitID(player)
-    if IsInRaid() then
-        return GetRaidUnitID(player);
-    elseif IsInGroup() then
-        return GetPartyUnitID(player);
-    elseif self:IsMe(player) then
-        return "player"
-    end
-end
-
+--- Implements the class color function above 
 function LootReserve:ColoredPlayer(player, class)
     local name, realm = strsplit("-", player);
     return realm and format("|c%s%s|r|c%s-%s|r", GetPlayerClassColor(player, false, class), name, GetPlayerClassColor(player, true, class), realm)
                   or format("|c%s%s|r",          GetPlayerClassColor(player, false, class), player);
 end
 
+--- Does a for-each loop across the entire raid group. Used in several other functions.
 function LootReserve:ForEachRaider(func)
     if not IsInGroup() then
         local className, classFilename = UnitClass("player");
@@ -714,6 +753,7 @@ function LootReserve:ForEachRaider(func)
     end
 end
 
+--- For those names that use a billion different accents to get around their lack of creativity
 local charSimplifications =
 {
     ["a"  ] = "ÀÁÂÃÄÅàáâãäåĀāĂăĄąǍǎǞǟǠǡǺǻȀȁȂȃɐɑɒ",
@@ -752,6 +792,7 @@ local charSimplifications =
     ["z"  ] = "ŹźŻżŽžƵƶʐʑ",
 };
 
+--- Generates a map from the above table
 local simplificationMapping = { }
 for replacement, pattern in pairs(charSimplifications) do
     local len = pattern:utf8len();
@@ -761,6 +802,7 @@ for replacement, pattern in pairs(charSimplifications) do
     end
 end
 
+--- Normalizes a cringe name into one that can be used easily.
 function LootReserve:NormalizeName(name)
     for i = 1, name:utf8len() do
         if name:utf8sub(i, i) == "-" then
@@ -795,17 +837,20 @@ function LootReserve:SimplifyNameLower(name)
     return simplifiedNamesLowerMemo[name];
 end
 
+--- Gets the total number of players in your group (any).
 function LootReserve:GetNumGroupMembers(func)
     local count = 0;
     self:ForEachRaider(function() count = count + 1; end);
     return count;
 end
 
+--- Determines if the item is available for rolling/awardment
 function LootReserve:IsTradeableItem(bag, slot)
     -- can't use C_Item.IsBound because it sometimes bugs and gives a usage error despite correctly receiving an ItemLocation
     return not LootReserve:IsItemSoulbound(bag, slot) or LootReserve:IsItemSoulboundTradeable(bag, slot);
 end
 
+--- Tells if the addon should look in the keyring for toys that may have been looted there (such as cosmetic toys)
 function LootReserve:ShouldScanKeyring()
     return LootReserve:GetCurrentExpansion() < 3 and LootReserve:GetCurrentSeason() == 2 and _G.KeyRingButtonIDToInvSlotID and true or false;
 end
@@ -868,10 +913,13 @@ local function match(item, itemOrID)
     end
 end
 
+--- Wipes the cached bag state.
 function LootReserve:WipeBagCache()
     self.BagCache = nil;
 end
 
+--- Gets the number of a tradeable item in the player's inventory.
+--- Presumably for when multiple tokens drop or other similar situations.
 function LootReserve:GetTradeableItemCount(itemOrID, includeLoot)
     CheckBagCache(self);
     local count, _ = 0;
@@ -896,6 +944,7 @@ function LootReserve:GetTradeableItemCount(itemOrID, includeLoot)
     return count;
 end
     
+--- Gets the bag slot of an item by ID or itemlink.
 function LootReserve:GetBagSlot(itemOrID, permitLocked)
     CheckBagCache(self);
     local lowest;
@@ -919,6 +968,7 @@ function LootReserve:GetBagSlot(itemOrID, permitLocked)
     return nil;
 end
 
+--- Checks if an item is soulbound.
 function LootReserve:IsItemSoulbound(bag, slot)
     if not self.TooltipScanner then
         self.TooltipScanner = CreateFrame("GameTooltip", "LootReserveTooltipScanner", nil, "GameTooltipTemplate");
@@ -983,6 +1033,7 @@ local function ReadDuration(text)
     return duration;
 end
 
+--- Gets the duration of an item's tradeability.
 function LootReserve:GetSoulboundTradeableDuration(bag, slot)
     if not self.TooltipScanner then
         self.TooltipScanner = CreateFrame("GameTooltip", "LootReserveTooltipScanner", nil, "GameTooltipTemplate");
@@ -1014,10 +1065,12 @@ function LootReserve:GetSoulboundTradeableDuration(bag, slot)
     return nil;
 end
 
+--- Tells if an item in a certain slot is tradeable
 function LootReserve:IsItemSoulboundTradeable(bag, slot)
     return self:GetSoulboundTradeableDuration(bag, slot) and true or false;
 end
 
+--- Checks if an item in the trade menu is the same as the item specified.
 function LootReserve:IsItemBeingTraded(item)
     for i = 1, 6 do
         local link = GetTradePlayerItemLink(i);
@@ -1031,6 +1084,7 @@ function LootReserve:IsItemBeingTraded(item)
     return false;
 end
 
+--- Automates the trading process of awarded items.
 function LootReserve:PutItemInTrade(bag, slot)
     for i = 1, 6 do
         if not GetTradePlayerItemInfo(i) then
@@ -1042,6 +1096,8 @@ function LootReserve:PutItemInTrade(bag, slot)
     return false;
 end
 
+--- Gets necessary information on the item by ID. 
+--- Presumably noTokenRedirect is meaningful but that will probably be more clear when I see an implimentation.
 function LootReserve:GetItemDescription(itemID, noTokenRedirect)
     local item = LootReserve.ItemCache:Item(itemID);
     if not item:Cache():IsCached() then return; end
@@ -1111,6 +1167,7 @@ function LootReserve:GetItemDescription(itemID, noTokenRedirect)
     return itemText;
 end
 
+--- Checks if an item is in the current loot window by name.
 function LootReserve:IsLootingItem(itemOrID)
     local item = LootReserve.ItemCache:Item(itemOrID);
     local firstIndex;
@@ -1128,14 +1185,19 @@ function LootReserve:IsLootingItem(itemOrID)
     return firstIndex, count;
 end
 
+--- Returns if the UnitPosition can be determined, abstracting it to a boolean
+--- The use of `not not` is so goofy but you know what they say about stupid stuff that works.
 function LootReserve:CanLocate()
     return not not UnitPosition("player");
 end
 
+--- Returns if DBM can be utilized to determine relative unit position.
+--- Probably for auto-trading awarded items.
 function LootReserve:CanUseDBMLocator(unitID)
     return DBM and DBM.ReleaseRevision > 20220618000000 and self:CanLocate() and UnitIsVisible(unitID) and true or false;
 end
 
+--- Gets the continent that the player is currently on as well as the world position.
 function LootReserve:GetContinent(unitID)
     local mapID = C_Map.GetBestMapForUnit(unitID);
     if not mapID then return; end
@@ -1149,15 +1211,19 @@ function LootReserve:GetContinent(unitID)
     return continent, worldPos;
 end
 
+--- Checks if range checking is restricted
+--- Presumably to skirt around lua errors due to combat lockdown. Yay...
 function LootReserve:IsRangeCheckRestricted(unitID)
     return LootReserve:GetCurrentExpansion() == 0 and InCombatLockdown() and not UnitCanAttack("player", unitID);
 end
 
+--- Uses the above function to verify range checking is not locked down, then attempts to get the maximum distance.
 function LootReserve:CheckInteractDistance(unitID, distIndex)
     if self:IsRangeCheckRestricted(unitID) then return false; end
     return CheckInteractDistance(unitID, distIndex);
 end
 
+--- Gets how far a unit is from the player.
 function LootReserve:GetRange(unitID, playerPos, targetPos)
     if not playerPos or not targetPos then
         local min, max = self.LibRangeCheck:getRange(unitID);
@@ -1178,6 +1244,7 @@ function LootReserve:GetRange(unitID, playerPos, targetPos)
     return dist, nil, angle, format("%s%.0f|r yd%s |TInterface\\Common\\Spacer:16|t", self:GetRangeColor(dist), dist, dist == 1 and "" or "s");
 end
 
+--- Cute little range color indicator.
 function LootReserve:GetRangeColor(range)
     if range < 15 then
         return "|cff00ff00"; -- green
@@ -1190,6 +1257,7 @@ function LootReserve:GetRangeColor(range)
     end
 end
 
+--- Formats the search text to enable searching through the item database. 
 function LootReserve:TransformSearchText(text)
     text = self:StringTrim(text, "[%s%[%]]");
     text = text:upper();
@@ -1200,15 +1268,18 @@ function LootReserve:TransformSearchText(text)
     return text;
 end
 
+--- Handles trimming. Used above
 function LootReserve:StringTrim(str, chars)
     chars = chars or "%s"
     return (str:match("^" .. chars .. "*(.-)" .. chars .. "*$"));
 end
 
+--- Converts a format to a regular expression.
 function LootReserve:FormatToRegexp(fmt)
     return fmt:gsub("%d+%$",""):gsub("%(", "%%("):gsub("%)", "%%)"):gsub("%%s", "(.+)"):gsub("%%d", "(%%d+)");
 end
 
+--- I don't really understand this, but I'm going to assume that it has to do with not wanting to use a reference instead of a value.
 function LootReserve:Deepcopy(orig)
     if type(orig) == 'table' then
         local copy = { };
@@ -1222,6 +1293,7 @@ function LootReserve:Deepcopy(orig)
     end
 end
 
+--- LootReserve mirror of a function that handles the removal of values from a table. 
 function LootReserve:TableRemove(tbl, val)
     for index, i in ipairs(tbl) do
         if i == val then
@@ -1231,6 +1303,7 @@ function LootReserve:TableRemove(tbl, val)
     return nil;
 end
 
+--- Gets the number of items in a table.
 function LootReserve:TableCount(tbl, val)
     local count = 0;
     for _, i in ipairs(tbl) do
@@ -1241,6 +1314,7 @@ function LootReserve:TableCount(tbl, val)
     return count;
 end
 
+--- Checks if a table contains a value
 function LootReserve:Contains(tbl, val)
     for _, i in ipairs(tbl) do
         if i == val then
@@ -1250,6 +1324,7 @@ function LootReserve:Contains(tbl, val)
     return false;
 end
 
+--- Reorders a passed-in table using default sorting unless another sort method is specified.
 function LootReserve:Ordered(tbl, sorter)
     local __orderedIndex;
     local function __genOrderedIndex(t)
@@ -1388,6 +1463,7 @@ function LootReserve:FormatPlayersText(players, colorFunc)
     return text;
 end
 
+--- Colorizes each player by their class colors.
 function LootReserve:FormatPlayersTextColored(players, colorFunc)
     return self:FormatPlayersText(players, function(...) return self:ColoredPlayer(...); end);
 end

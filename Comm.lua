@@ -122,17 +122,22 @@ local function SendCommMessage(prefix, channel, target, opcode, ...)
     return message;
 end
 
+--- Sends a message in the addon's communication channel.
 function LootReserve.Comm:SendCommMessage(channel, target, opcode, ...)
     SendCommMessage(COMM_FORCE_COMPATIBLE and self.Prefix or GetNextPrefix(), channel, target, opcode, ...)
 end
 
+--- Sends a message in the addon's communication channel. 
+--- Unsure of what this does differently, but I assume it doesn't enforce an internal Blizzard string compatibility mode
 function LootReserve.Comm:SendCommMessageCompatible(channel, target, opcode, ...)
     SendCommMessage(self.Prefix, channel, target, opcode, ...)
 end
 
+--- Begins listening to addon communications.
 function LootReserve.Comm:StartListening()
     if not self.Listening then
         self.Listening = true;
+        --- Tells what to do on receipt of addon communications.
         local function OnCommReceived(prefix, text, channel, sender)
             if not self.PrefixKeys[prefix] then return; end
             
@@ -187,20 +192,24 @@ function LootReserve.Comm:StartListening()
                 end
             end
         end
-        
+        --- Registers each prefix the addon uses for communications. 
         for prefix in pairs(LootReserve.Comm.PrefixKeys) do
             LootReserve:RegisterComm(prefix, OnCommReceived);
         end
     end
 end
 
+--- Checks if the player can whisper a given "target" player.
 function LootReserve.Comm:CanWhisper(target)
     return LootReserve.Enabled and LootReserve:IsPlayerOnline(target);
 end
+
+--- Checks if the player can whisper a given "target" player with compatibility mode (?)
 function LootReserve.Comm:CanWhisperCompatible(target)
     return LootReserve:IsPlayerOnline(target);
 end
 
+--- Sends a given message to all clients.
 function LootReserve.Comm:Broadcast(opcode, ...)
     if not LootReserve.Enabled then return; end
 
@@ -229,6 +238,7 @@ function LootReserve.Comm:WhisperServer(opcode, ...)
     end
 end
 
+--- Sends a given message to all clients in compatibility mode (?)
 function LootReserve.Comm:BroadcastCompatible(opcode, ...)
     if IsInGroup() then
         self:SendCommMessageCompatible(IsInRaid() and "RAID" or "PARTY", nil, opcode, ...);
@@ -257,6 +267,8 @@ function LootReserve.Comm:SendVersion(target)
         LootReserve.Version,
         LootReserve.MinAllowedVersion);
 end
+
+--- Shuts down LootReserve if the client's version is not up-to-date
 LootReserve.Comm.Handlers[Opcodes.Version] = function(sender, version, minAllowedVersion)
     LootReserve.Server:SetAddonUser(sender, version);
     if LootReserve.LatestKnownVersion >= version then return; end
@@ -279,6 +291,7 @@ LootReserve.Comm.Handlers[Opcodes.Version] = function(sender, version, minAllowe
 end
 
 -- ReportIncompatibleVersion
+--- Reports to other clients that the local client is an incompatible version.
 function LootReserve.Comm:BroadcastReportIncompatibleVersion()
     LootReserve.Comm:Broadcast(Opcodes.ReportIncompatibleVersion,
         LootReserve.Version);
@@ -317,6 +330,7 @@ LootReserve.Comm.Handlers[Opcodes.Hello] = function(sender)
 end
 
 -- SessionInfo
+--- Broadcasts the state of the session to all listening clients.
 function LootReserve.Comm:BroadcastSessionInfo(starting)
     LootReserve:NotifyListeners("RESERVES");
     local session = LootReserve.Server.CurrentSession;
@@ -330,6 +344,8 @@ function LootReserve.Comm:BroadcastSessionInfo(starting)
         LootReserve.Comm:SendSessionInfo(nil, starting);
     end
 end
+
+--- Sends Session info to a given listening client.
 function LootReserve.Comm:SendSessionInfo(target, starting)
     local session = LootReserve.Server.CurrentSession;
     if not session then return; end
@@ -419,6 +435,8 @@ function LootReserve.Comm:SendSessionInfo(target, starting)
         total,
         missing);
 end
+
+--- Receives/parses the information from a SessionInfo update.
 LootReserve.Comm.Handlers[Opcodes.SessionInfo] = function(sender, starting, startTime, acceptingReserves, membersInfo, lootCategories, duration, maxDuration, itemReserves, itemConditions, equip, blind, multireserve, optInfo, total, missing)
     starting = tonumber(starting) == 1;
     startTime = tonumber(startTime);
@@ -536,6 +554,8 @@ LootReserve.Comm.Handlers[Opcodes.SessionReset] = function(sender)
         LootReserve.Client:UpdateLootList();
     end
 end
+
+--- Tells if a client has opted out to another client.
 function LootReserve.Comm:SendOptInfo(target, out)
     local session = LootReserve.Server.CurrentSession;
     if not session then return; end
@@ -545,6 +565,8 @@ function LootReserve.Comm:SendOptInfo(target, out)
 
     LootReserve.Comm:Send(target, Opcodes.OptInfo, out == true);
 end
+
+--- Forcibly opts-out a player with an incompatible version.
 LootReserve.Comm.Handlers[Opcodes.OptInfo] = function(sender, out)
     out = tonumber(out) == 1;
 
@@ -565,6 +587,7 @@ LootReserve.Comm.Handlers[Opcodes.OptInfo] = function(sender, out)
 end
 
 -- ReservesTotalMissing
+--- Broadcasts the total amount of reserves available which are not allocated.
 function LootReserve.Comm:BroadcastReservesTotalMissing()
     local missing = 0;
     local total = 0;
@@ -593,6 +616,7 @@ LootReserve.Comm.Handlers[Opcodes.ReservesTotalMissing] = function(sender, total
 end
 
 -- Opt Out
+--- Informs the server that the player has opted out.
 function LootReserve.Comm:SendOptOut()
     LootReserve.Comm:WhisperServer(Opcodes.OptOut);
 end
@@ -603,6 +627,7 @@ LootReserve.Comm.Handlers[Opcodes.OptOut] = function(sender)
 end
 
 -- Opt In
+--- Informs the server that the client would like to opt in.
 function LootReserve.Comm:SendOptIn()
     LootReserve.Comm:WhisperServer(Opcodes.OptIn);
 end
@@ -613,11 +638,14 @@ LootReserve.Comm.Handlers[Opcodes.OptIn] = function(sender)
 end
 
 -- OptResult
+--- Whispers a player to confirm an opt status or report an issue.
 function LootReserve.Comm:SendOptResult(target, result, forced)
     LootReserve.Comm:Whisper(target, Opcodes.OptResult,
         result,
         forced);
 end
+
+--- Reports a detailed version of the opt result.
 LootReserve.Comm.Handlers[Opcodes.OptResult] = function(sender, result, forced)
     result = tonumber(result);
     forced = tonumber(forced) == 1;
@@ -652,6 +680,7 @@ LootReserve.Comm.Handlers[Opcodes.OptResult] = function(sender, result, forced)
 end
 
 -- ReserveItem
+--- Messages the server with a request to reserve on an item.
 function LootReserve.Comm:SendReserveItem(itemID)
     LootReserve.Comm:WhisperServer(Opcodes.ReserveItem, itemID);
 end
@@ -666,6 +695,7 @@ LootReserve.Comm.Handlers[Opcodes.ReserveItem] = function(sender, itemID)
 end
 
 -- ReserveResult
+--- Reports the outcome of a reserve request to the sending player.
 function LootReserve.Comm:SendReserveResult(target, itemID, result, remainingReserves, forced)
     LootReserve.Comm:Whisper(target, Opcodes.ReserveResult,
         itemID,
@@ -673,6 +703,8 @@ function LootReserve.Comm:SendReserveResult(target, itemID, result, remainingRes
         remainingReserves,
         forced);
 end
+
+--- Reports a detailed result of the reserve request.
 LootReserve.Comm.Handlers[Opcodes.ReserveResult] = function(sender, itemID, result, remainingReserves, forced)
     itemID = tonumber(itemID);
     result = tonumber(result);
@@ -713,9 +745,12 @@ LootReserve.Comm.Handlers[Opcodes.ReserveResult] = function(sender, itemID, resu
 end
 
 -- ReserveInfo
+--- Broadcasts the reserve info to all clients.
 function LootReserve.Comm:BroadcastReserveInfo(itemID, players)
     LootReserve.Comm:SendReserveInfo(nil, itemID, players);
 end
+
+--- Actually handles the individual reserve info messages to each client.
 function LootReserve.Comm:SendReserveInfo(target, itemID, players)
     local missing = 0;
     local total = 0;
@@ -734,6 +769,8 @@ function LootReserve.Comm:SendReserveInfo(target, itemID, players)
         total,
         missing);
 end
+
+--- Reconstructs/parses reserve info into usable data for the local client
 LootReserve.Comm.Handlers[Opcodes.ReserveInfo] = function(sender, itemID, players, total, missing)
     itemID = tonumber(itemID);
     total = tonumber(total);
@@ -782,9 +819,12 @@ LootReserve.Comm.Handlers[Opcodes.ReserveInfo] = function(sender, itemID, player
 end
 
 -- CancelReserve
+--- Sends a request to the server to cancel a reserve.
 function LootReserve.Comm:SendCancelReserve(itemID)
     LootReserve.Comm:WhisperServer(Opcodes.CancelReserve, itemID);
 end
+
+--- Handles a request to cancel a reserve.
 LootReserve.Comm.Handlers[Opcodes.CancelReserve] = function(sender, itemID)
     itemID = tonumber(itemID);
 
@@ -794,6 +834,7 @@ LootReserve.Comm.Handlers[Opcodes.CancelReserve] = function(sender, itemID)
 end
 
 -- CancelReserveResult
+--- Reports the result of an attempt to cancel a reserve to the sending player.
 function LootReserve.Comm:SendCancelReserveResult(target, itemID, result, remainingReserves, count, quiet)
     LootReserve.Comm:Whisper(target, Opcodes.CancelReserveResult,
         itemID,
@@ -802,6 +843,8 @@ function LootReserve.Comm:SendCancelReserveResult(target, itemID, result, remain
         count,
         quiet);
 end
+
+--- Reconstructs/parses results of attempting to cancel a reserve into usable data by the client.
 LootReserve.Comm.Handlers[Opcodes.CancelReserveResult] = function(sender, itemID, result, remainingReserves, count, quiet)
     itemID = tonumber(itemID);
     result = tonumber(result);
@@ -850,9 +893,12 @@ LootReserve.Comm.Handlers[Opcodes.CancelReserveResult] = function(sender, itemID
 end
 
 -- RequestRoll
+--- Broadcasts a request to every listening client requesting that they roll on an item.
 function LootReserve.Comm:BroadcastRequestRoll(item, players, custom, duration, maxDuration, phases, tiered)
     LootReserve.Comm:SendRequestRoll(nil, item, players, custom, duration, maxDuration, phases or { }, tiered);
 end
+
+--- Unicasts a request to a given player requesting a roll on an item.
 function LootReserve.Comm:SendRequestRoll(target, item, players, custom, duration, maxDuration, phases, tiered)
     LootReserve.Comm:Send(target, Opcodes.RequestRoll,
         format("%d,%d", item:GetID(), item:GetSuffix() or 0),
@@ -864,6 +910,8 @@ function LootReserve.Comm:SendRequestRoll(target, item, players, custom, duratio
         LootReserve.Server.Settings.AcceptRollsAfterTimerEnded,
         tiered);
 end
+
+--- Handles a request from the server to roll on an item.
 LootReserve.Comm.Handlers[Opcodes.RequestRoll] = function(sender, item, players, custom, duration, maxDuration, phases, acceptRollsAfterTimerEnded, tiered)
     local id, suffix = strsplit(",", item);
     item = LootReserve.ItemCache:Item(tonumber(id), tonumber(suffix));
@@ -891,19 +939,23 @@ LootReserve.Comm.Handlers[Opcodes.RequestRoll] = function(sender, item, players,
 end
 
 -- PassRoll
+--- Attempts to on rolling for an item.
 function LootReserve.Comm:SendPassRoll(item)
     LootReserve.Comm:Whisper(LootReserve.Client.RollRequest.Sender, Opcodes.PassRoll, format("%d,%s", item:GetID(), item:GetSuffix() or 0));
 end
+--- Handles a client's request to pass on rolling for an item.
 LootReserve.Comm.Handlers[Opcodes.PassRoll] = function(sender, item)
     item = LootReserve.ItemCache:Item(strsplit(",", item));
     LootReserve.Server:PassRoll(sender, item);
 end
 
 -- DeletedRoll
+--- Attempts to delete a given roll from the record.
 function LootReserve.Comm:SendDeletedRoll(player, item, roll, phase)
     LootReserve.Comm:Whisper(player, Opcodes.DeletedRoll,
         format("%d,%s", item:GetID(), item:GetSuffix() or 0), roll, phase);
 end
+--- Reports an attempt to delete a roll from the record.
 LootReserve.Comm.Handlers[Opcodes.DeletedRoll] = function(sender, item, roll, phase)
     item = LootReserve.ItemCache:Item(strsplit(",", item));
     roll = tonumber(roll);
@@ -917,9 +969,12 @@ end
 
 
 -- SendWinner
+--- Broadcasts the winner of a given roll.
 function LootReserve.Comm:BroadcastWinner(...)
     LootReserve.Comm:SendWinner(nil, ...);
 end
+
+--- Unicasts the winner of a given roll to a given player.
 function LootReserve.Comm:SendWinner(target, item, winners, losers, roll, custom, phase, raidRoll)
     LootReserve.Comm:Send(target, Opcodes.SendWinner,
         format("%d,%s", item:GetID(), item:GetSuffix() or 0),
@@ -930,6 +985,8 @@ function LootReserve.Comm:SendWinner(target, item, winners, losers, roll, custom
         phase or "",
         raidRoll == true);
 end
+
+--- Receives and parses a notification of a winner on an item.
 LootReserve.Comm.Handlers[Opcodes.SendWinner] = function(sender, item, winners, losers, roll, custom, phase, raidRoll)
     item     = LootReserve.ItemCache:Item(strsplit(",", item));
     roll     = tonumber(roll);

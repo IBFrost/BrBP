@@ -88,7 +88,7 @@ StaticPopupDialogs["LOOTRESERVE_PROMPT_REMOVE_FAVORITE"] =
     end,
 };
 
-
+--- Initializes the client
 function LootReserve.Client:Init()
     local function LootReserveRollOnLoot(rollID, rollType, ...)
         if not self.SessionServer then return; end
@@ -126,7 +126,7 @@ function LootReserve.Client:Init()
 end
 LootReserve.Client:Init();
 
-
+--- Loads global saved variables into the client such as settings or favorites.
 function LootReserve.Client:Load()
     LootReserveCharacterSave.Client = LootReserveCharacterSave.Client or { };
     LootReserveGlobalSave.Client = LootReserveGlobalSave.Client or { };
@@ -191,10 +191,13 @@ function LootReserve.Client:Load()
     LootReserveGlobalSave.Client.Version = LootReserve.Version;
 end
 
+--- Sets an item as favorited in CharacterFavorites
+--- Likely used to handle both the button press and loading favorites from storage.
 function LootReserve.Client:IsFavorite(itemID)
     return self.CharacterFavorites[itemID] or self.GlobalFavorites[itemID];
 end
 
+--- Sets an item as a favorite on the running client
 function LootReserve.Client:SetFavorite(itemID, enabled)
     if self:IsFavorite(itemID) == (enabled and true or false) then return; end
     
@@ -209,6 +212,7 @@ function LootReserve.Client:SetFavorite(itemID, enabled)
     self:FlashCategory("Favorites");
 end
 
+--- Looks for a running server in the raid.
 function LootReserve.Client:SearchForServer(startup)
     if not startup and self.ServerSearchTimeoutTime and time() < self.ServerSearchTimeoutTime then return; end
     self.ServerSearchTimeoutTime = time() + 10;
@@ -216,6 +220,7 @@ function LootReserve.Client:SearchForServer(startup)
     LootReserve.Comm:BroadcastHello();
 end
 
+--- Enables Masquerade mode (likely determines if players can see other players' reserves)
 function LootReserve.Client:SetMasquerade(player)
     local oldMasquerade = self.Masquerade;
     if self.SessionServer and LootReserve:IsMe(self.SessionServer) and LootReserve.Server and LootReserve.Server.CurrentSession then
@@ -230,6 +235,7 @@ function LootReserve.Client:SetMasquerade(player)
     end
 end
 
+--- Starts a local session for LootReserve using inputs (Used in Comm.lua function beginning ln: 440)
 function LootReserve.Client:StartSession(server, starting, startTime, acceptingReserves, lootCategories, duration, maxDuration, equip, blind, multireserve)
     self:ResetSession(true);
     self.SessionServer = server;
@@ -393,7 +399,7 @@ function LootReserve.Client:StartSession(server, starting, startTime, acceptingR
     end
 
     if starting then
-        self.Masquerade = nil;
+        self.Masquerade = nil; --- <-- This is problematic if always hiding. May require some fussing.
         local lootCategoriesText = LootReserve:GetCategoriesText(self.LootCategories);
         LootReserve:PrintMessage("Session started%s%s.", lootCategoriesText ~= "" and " for " or "", lootCategoriesText);
         if self.AcceptingReserves then
@@ -402,10 +408,13 @@ function LootReserve.Client:StartSession(server, starting, startTime, acceptingR
     end
 end
 
+--- Stops the reserve allocation session.
 function LootReserve.Client:StopSession()
     self.AcceptingReserves = false;
 end
 
+--- Resets the reserve allocation session
+--- May require STEEP modification to accomodate resetting to stored values rather than zero, especially if conditional.
 function LootReserve.Client:ResetSession(refresh)
     self.SessionServer     = nil;
     self.RemainingReserves = 0;
@@ -429,19 +438,27 @@ function LootReserve.Client:ResetSession(refresh)
     end
 end
 
+--- Checks how many remaining reserves the client has
 function LootReserve.Client:GetRemainingReserves()
     return self.SessionServer and self.AcceptingReserves and self.RemainingReserves or 0;
 end
+
+--- Returns a boolean of if the player has remaining reserves to allocate.
 function LootReserve.Client:HasRemainingReserves()
     return self:GetRemainingReserves() > 0;
 end
+
+--- Returns the maximum number of reserves the client could have according to the session rules.
 function LootReserve.Client:GetMaxReserves()
     return self.SessionServer and self.MaxReserves or 0;
 end
 
+--- Checks if there are reserves on an item, including those of other players, and returns the total.
 function LootReserve.Client:IsItemReserved(itemID)
     return #self:GetItemReservers(itemID) > 0;
 end
+
+--- Checks if an item is reserved by the player, bypassing masquerade settings.
 function LootReserve.Client:IsItemReservedByMe(itemID, bypassMasquerade)
     for _, player in ipairs(self:GetItemReservers(itemID)) do
         if LootReserve:IsSamePlayer(not bypassMasquerade and LootReserve.Client.Masquerade or LootReserve:Me(), player) then
@@ -450,14 +467,19 @@ function LootReserve.Client:IsItemReservedByMe(itemID, bypassMasquerade)
     end
     return false;
 end
+
+--- Gets information on who has reserved a given item.
 function LootReserve.Client:GetItemReservers(itemID)
     if not self.SessionServer then return { }; end
     return self.ItemReserves[itemID] or { };
 end
 
+--- Identifies if an item has pending reserve status changes
 function LootReserve.Client:IsItemPending(itemID)
     return self.PendingItems[itemID];
 end
+
+--- Sets an item as pending on the client
 function LootReserve.Client:SetItemPending(itemID, pending)
     self.PendingItems[itemID] = pending or nil;
     if self.PendingTimers[itemID] then
@@ -472,6 +494,7 @@ function LootReserve.Client:SetItemPending(itemID, pending)
     end
 end
 
+--- Sets an item as reserved on the client and attempts to reconcile with the server.
 function LootReserve.Client:Reserve(itemID)
     if not self.SessionServer then return; end
     if not self.AcceptingReserves then return; end
@@ -489,6 +512,7 @@ function LootReserve.Client:Reserve(itemID)
     LootReserve.Comm:SendReserveItem(tokenID or itemID);
 end
 
+--- Cancels a reserve on the client and attempts to reconcile with the server.
 function LootReserve.Client:CancelReserve(itemID)
     if not self.SessionServer then return; end
     if not self.AcceptingReserves then return; end
@@ -506,20 +530,27 @@ function LootReserve.Client:CancelReserve(itemID)
     LootReserve.Comm:SendCancelReserve(tokenID or itemID);
 end
 
+--- Returns a boolean telling if the client is currently pending changes to its opt status.
 function LootReserve.Client:IsOptPending()
     return self.PendingOpt;
 end
+
+--- Sets the client as pending changes to the client's opt status.
 function LootReserve.Client:SetOptPending(pending)
     self.PendingOpt = pending or nil;
 end
 
+--- Returns a boolean telling if the client is opted out.
 function LootReserve.Client:IsOptedOut()
     return self.OptedOut or false;
 end
+
+--- Returns a boolean telling if the client is opted in.
 function LootReserve.Client:IsOptedIn()
     return not self:IsOptedOut();
 end
 
+--- Attempts to "opt out" of the session, making sure to reconcile with the server.
 function LootReserve.Client:OptOut()
     if not self.SessionServer then return; end
     if not self.AcceptingReserves then return; end
@@ -528,6 +559,7 @@ function LootReserve.Client:OptOut()
     LootReserve.Comm:SendOptOut();
 end
 
+--- Attempts to "opt in" to the session, making sure to reconcile with the server.
 function LootReserve.Client:OptIn()
     if not self.SessionServer then return; end
     if not self.AcceptingReserves then return; end

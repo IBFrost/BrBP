@@ -31,7 +31,7 @@ end
 
 
 
-
+--- Loads the appliccable items for the given expansion into LootReserve for searching.
 function LootReserve.ItemSearch:Load()
     if self.FullCache then return end
     
