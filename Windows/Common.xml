@@ -24,6 +24,7 @@
 			</OnMouseUp>
 		</Scripts>
 	</Button>
+	<!-- Frame resize grabber template -->
 	<Button name="LootReserveCommonFrameSizeGrabberTemplate" virtual="true">
 		<Size x="16" y="16"/>
 		<Anchors>
